@@ -33,7 +33,11 @@ export const getCategoryByHandle = async (categoryHandle: string[]) => {
     ...(await getCacheOptions("categories")),
   }
 
-  return sdk.client
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 50000)
+
+  try {
+    return sdk.client
     .fetch<HttpTypes.StoreProductCategoryListResponse>(
       `/store/product-categories`,
       {
@@ -43,7 +47,17 @@ export const getCategoryByHandle = async (categoryHandle: string[]) => {
         },
         next,
         cache: "force-cache",
+        signal: controller.signal,
       }
     )
-    .then(({ product_categories }) => product_categories[0])
+      .then(({ product_categories }) => product_categories[0])
+
+    clearTimeout(timeoutId)
+
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      console.error("Request timed out")
+    }
+    throw error
+  }
 }
