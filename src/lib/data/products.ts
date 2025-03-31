@@ -63,7 +63,7 @@ export const listProducts = async ({
           offset,
           region_id: region?.id,
           fields:
-            "*variants.calculated_price,+variants.inventory_quantity,+metadata,+tags",
+            "*variants.calculated_price,+variants.inventory_quantity,+metadata,+tags,*variants.prices",
           ...queryParams,
         },
         headers,
@@ -83,6 +83,13 @@ export const listProducts = async ({
         queryParams,
       }
     })
+}
+
+export const getProduct = async (productId: string) => {
+  return sdk.client.fetch(`/store/subscriptions/${productId}`).then((data) => {
+    console.log("data from getProduct", data)
+    return data
+  })
 }
 
 /**

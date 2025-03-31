@@ -116,10 +116,19 @@ export async function addToCart({
   variantId,
   quantity,
   countryCode,
+  purchaseOption,
+  unit_price,
+  metadata
 }: {
   variantId: string
   quantity: number
   countryCode: string
+  purchaseOption: string
+  unit_price: number
+  metadata: {
+    interval: string
+    type: string
+  }
 }) {
   if (!variantId) {
     throw new Error("Missing variant ID when adding to cart")
@@ -135,7 +144,33 @@ export async function addToCart({
     ...(await getAuthHeaders()),
   }
 
-  await sdk.store.cart
+  if (purchaseOption !== "one-time") {
+    console.log("purchaseOption is here", purchaseOption, unit_price)
+    await sdk.client.fetch(`/store/carts/${cart.id}/line-item-subscription`, {
+      method: "post",
+      headers,
+      body: {
+        item: {
+          variant_id: variantId,
+          quantity,
+          unit_price,
+          metadata,
+        },
+      },
+    }).then(async () => {
+
+      console.log("cart is here", cart)
+      const cartCacheTag = await getCacheTag("carts")
+      revalidateTag(cartCacheTag)
+
+      const fulfillmentCacheTag = await getCacheTag("fulfillment")
+      revalidateTag(fulfillmentCacheTag)
+    })
+    .catch(medusaError)
+  }
+
+  if (purchaseOption === "one-time") {
+    await sdk.store.cart
     .createLineItem(
       cart.id,
       {
@@ -153,6 +188,7 @@ export async function addToCart({
       revalidateTag(fulfillmentCacheTag)
     })
     .catch(medusaError)
+}
 }
 
 export async function updateLineItem({
@@ -379,12 +415,12 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
     return e.message
   }
 
-  // redirect(
-  //   `/${formData.get("shipping_address.country_code")}/checkout?step=delivery`
-  // )
   redirect(
-    `/${formData.get("shipping_address.country_code")}/checkout?step=subscription`
+    `/${formData.get("shipping_address.country_code")}/checkout?step=delivery`
   )
+  // redirect(
+  //   `/${formData.get("shipping_address.country_code")}/checkout?step=subscription`
+  // )
 
 }
 
@@ -405,7 +441,9 @@ export async function placeOrder(cartId?: string) {
   }
 
   const cartRes = await sdk.store.cart
-    .complete(id, {}, headers)
+    .complete(id, {
+      fields: "+metadata"
+    }, headers)
     .then(async (cartRes) => {
       const cartCacheTag = await getCacheTag("carts")
       revalidateTag(cartCacheTag)
@@ -413,9 +451,19 @@ export async function placeOrder(cartId?: string) {
     })
     .catch(medusaError)
 
-  const subscription = await createSubscription(id)
+    console.log("cartRes is here", cartRes)
+
+    const checkForSubscription = cartRes?.type === "order" && cartRes?.order?.items?.some((item) => item?.metadata?.interval)
+
+    if(checkForSubscription) {
+      const subscription = await createSubscription(id)
+      console.log("subscription is here", subscription)
+    }
+
+  // const subscription = await createSubscription(id)
   
-  console.log("subscription is here", subscription)
+  // console.log("subscription is here", subscription)
+  
 
   if (cartRes?.type === "order") {
     const countryCode =
@@ -492,6 +540,25 @@ export async function updateSubscriptionData(
   })
   revalidateTag("cart")
 }
+
+// export async function createCustomPrice(cart: HttpTypes.StoreCart) {
+//   const headers = {
+//     ...(await getAuthHeaders()),
+//   }
+
+//   console.log("cart is here", cart)
+//   const updatedCart = await sdk.client.fetch(`/store/carts/${cart.id}/line-item-subscription`, {
+//     method: "post",
+//     body: {
+//       item: {
+//         variant_id: cart.items[0].variant_id,
+//         quantity: 1,
+//       },
+//     },
+//   }, {}, headers)
+  
+//   return updatedCart
+// }
 
 export async function createSubscription(cartId: string) {
   const subscription = await sdk.client.fetch(`/store/carts/${cartId}/subscribe`, {

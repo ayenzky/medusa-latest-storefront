@@ -70,6 +70,9 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
           {item.product_title}
         </Text>
         <LineItemOptions variant={item.variant} data-testid="product-variant" />
+        {item.metadata?.type === "subscription" && (
+          <Text className="text-sm text-ui-fg-subtle">{item.metadata?.type === "subscription" ? "Subscription Type:" + " " + (item.metadata?.interval ? (item.metadata.interval as string).charAt(0).toUpperCase() + (item.metadata.interval as string).slice(1) : "") : ""}</Text>
+        )}
       </Table.Cell>
 
       {type === "full" && (

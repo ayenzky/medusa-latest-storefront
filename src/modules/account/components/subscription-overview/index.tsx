@@ -5,12 +5,14 @@ import { Button } from "@medusajs/ui"
 import SubscriptionOrderCard from "../subscription-card"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { HttpTypes } from "@medusajs/types"
+import { orderBy } from "lodash"
 
 const SubscriptionOrderOverview = ({ orders }: { orders: any[] }) => {
   if (orders?.length) {
+    const sortedOrders = orderBy(orders, 'subscription_date', 'desc')
     return (
       <div className="flex flex-col gap-y-8 w-full">
-        {orders.map((o) => (
+        {sortedOrders.map((o) => (
           <div
             key={o.id}
             className="border-b border-gray-200 pb-6 last:pb-0 last:border-none"

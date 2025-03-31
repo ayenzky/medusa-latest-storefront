@@ -59,8 +59,20 @@ export const getRegion = async (countryCode: string) => {
       ? regionMap.get(countryCode)
       : regionMap.get("us")
 
+    console.log("region", region)
     return region
   } catch (e: any) {
     return null
   }
+}
+
+export const getCurrency = async (countryCode: string) => {
+  
+  return sdk.client.fetch(`/store/currencies/${countryCode}`, {
+    method: "GET",
+    cache: "force-cache",
+  })
+  .then(({ currency }: any) => currency)
+  .catch(medusaError)
+  
 }

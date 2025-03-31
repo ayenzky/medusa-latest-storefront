@@ -1,6 +1,6 @@
 "use client"
 
-import { Button, clx, Heading, Text } from "@medusajs/ui"
+import { Button, clx, Heading, Text, RadioGroup, Label } from "@medusajs/ui"
 import { CheckCircleSolid } from "@medusajs/icons"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useState } from "react"
@@ -17,6 +17,7 @@ const SubscriptionForm = () => {
   )
   const [period, setPeriod] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
+  const [paymentType, setPaymentType] = useState("one-time")
 
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -42,12 +43,19 @@ const SubscriptionForm = () => {
 
   const handleSubmit = async () => {
     setIsLoading(true)
-    
-    updateSubscriptionData(interval, period)
-    .then(() => {
+
+    if (paymentType === "subscription") {
+      updateSubscriptionData(interval, period)
+      .then(() => {
+        setIsLoading(false)
+        router.push(pathname + "?step=delivery", { scroll: false })
+      })
+    } else {
       setIsLoading(false)
       router.push(pathname + "?step=delivery", { scroll: false })
-    })
+    }
+    
+   
   }
 
   return (
@@ -81,36 +89,55 @@ const SubscriptionForm = () => {
       <div>
         <div className={isOpen ? "block" : "hidden"}>
           <div className="flex flex-col gap-4">
-            <NativeSelect 
-              placeholder="Interval" 
-              value={interval} 
-              onChange={(e) => 
-                setInterval(e.target.value as SubscriptionIntervalType)
-              }
-              required
-              autoComplete="interval"
-            >
-              {Object.values(SubscriptionInterval).map(
-                (intervalOption, index) => (
-                  <option key={index} value={intervalOption}>
-                    {capitalize(intervalOption)}
-                  </option>
-                )
-              )}
-            </NativeSelect>
-            <Input
-              label="Period"
-              name="period"
-              autoComplete="period"
-              value={period}
-              onChange={(e) => 
-                setPeriod(parseInt(e.target.value))
-              }
-              required
-              type="number"
-            />
+          <RadioGroup onValueChange={(value) => setPaymentType(value)}>
+              <div className="flex items-center gap-x-3">
+                <RadioGroup.Item value="one-time" id="one-time" />
+                <Label htmlFor="one-time" weight="plus">
+                  One time payment
+                </Label>
+              </div>
+              <div className="flex items-center gap-x-3">
+                <RadioGroup.Item value="subscription" id="subscription" />
+                <Label htmlFor="subscription" weight="plus">
+                  Subscription
+                </Label>
+              </div>
+            </RadioGroup>
+            
+            {paymentType === "subscription" && (
+              <>
+                <NativeSelect 
+                  placeholder="Interval" 
+                  value={interval} 
+                  onChange={(e) => 
+                    setInterval(e.target.value as SubscriptionIntervalType)
+                  }
+                  required
+                  autoComplete="interval"
+                >
+                  {Object.values(SubscriptionInterval).map(
+                    (intervalOption, index) => (
+                      <option key={index} value={intervalOption}>
+                        {capitalize(intervalOption)}
+                      </option>
+                    )
+                  )}
+                </NativeSelect>
+                <Input
+                  label="Period"
+                  name="period"
+                  autoComplete="period"
+                  value={period}
+                  onChange={(e) => 
+                    setPeriod(parseInt(e.target.value))
+                  }
+                  required
+                  type="number"
+                />
+              </>
+            )}
           </div>
-
+          
           <Button
             size="large"
             className="mt-6"

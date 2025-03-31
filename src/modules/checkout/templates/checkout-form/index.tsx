@@ -25,12 +25,12 @@ export default async function CheckoutForm({
   if (!shippingMethods || !paymentMethods) {
     return null
   }
-
+console.log("cart is here", cart)
   return (
     <div className="w-full grid grid-cols-1 gap-y-8">
       <Addresses cart={cart} customer={customer} />
       
-      <SubscriptionForm />
+      {/* <SubscriptionForm /> */}
       
       <Shipping cart={cart} availableShippingMethods={shippingMethods} />
 

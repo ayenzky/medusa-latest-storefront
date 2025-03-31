@@ -11,13 +11,17 @@ import { useParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 import ProductPrice from "../product-price"
 import MobileActions from "./mobile-actions"
+import { getProduct } from "@lib/data/products"
+import { useQuery } from "@tanstack/react-query"
+import ProductSubscription from "../product-subscription"
 
 type ProductActionsProps = {
   product: HttpTypes.StoreProduct
   region: HttpTypes.StoreRegion
   disabled?: boolean
-}
 
+}
+type PurchaseOption = "one-time" | "subscription"
 const optionsAsKeymap = (
   variantOptions: HttpTypes.StoreProductVariant["options"]
 ) => {
@@ -34,6 +38,25 @@ export default function ProductActions({
   const [options, setOptions] = useState<Record<string, string | undefined>>({})
   const [isAdding, setIsAdding] = useState(false)
   const countryCode = useParams().countryCode as string
+  const [purchaseOption, setPurchaseOption] = useState<PurchaseOption>("one-time")
+  const [quantity, setQuantity] = useState<number>(1)
+
+  const { data: subscriptionVariant } : any = useQuery({    
+    queryKey: ["subscriptionVariant", product.id],
+    queryFn: () => getProduct(product.id).then((product) => {
+          return product
+    }),
+    enabled: product.id !== undefined,
+    refetchInterval: (data) => {
+      console.log("data", data)
+      if (data) {
+        return false
+      }
+      return 1000 
+    },
+  })
+
+  
 
   // If there is only 1 variant, preselect the options
   useEffect(() => {
@@ -53,6 +76,26 @@ export default function ProductActions({
       return isEqual(variantOptions, options)
     })
   }, [product.variants, options])
+
+  console.log("subscriptionVariantzzzzs actions", subscriptionVariant && subscriptionVariant["subscription_product"]["subscriptionProduct"])!
+  
+  const subscriptionSelectedVariant = useMemo(() => {
+    if (!subscriptionVariant) {
+      return
+    }
+
+    
+    const subscriptionProduct = subscriptionVariant["subscription_product"]["subscriptionProduct"]
+
+    console.log("subscriptionProduct actions", subscriptionProduct)
+
+    const productSubscriptionVariant = subscriptionProduct?.find((v: any) => v.variant_id === selectedVariant?.id && v.interval === purchaseOption)
+
+    console.log("productSubscriptionVariant actions", productSubscriptionVariant)
+
+    return productSubscriptionVariant
+  }, [subscriptionVariant, selectedVariant, purchaseOption])
+
 
   // update the options when a variant is selected
   const setOptionValue = (optionId: string, value: string) => {
@@ -106,8 +149,14 @@ export default function ProductActions({
 
     await addToCart({
       variantId: selectedVariant.id,
-      quantity: 1,
+      quantity: quantity,
       countryCode,
+      purchaseOption,
+      unit_price: subscriptionSelectedVariant?.prices?.[selectedVariant?.calculated_price?.currency_code!],
+      metadata: {
+        interval: subscriptionSelectedVariant?.interval,
+        type: "subscription"
+      }
     })
 
     setIsAdding(false)
@@ -138,8 +187,19 @@ export default function ProductActions({
           )}
         </div>
 
-        <ProductPrice product={product} variant={selectedVariant} />
+        <ProductPrice 
+          product={product} 
+          variant={selectedVariant} 
+          variantSubscription={subscriptionSelectedVariant} 
+          purchaseOption={purchaseOption} 
+          setPurchaseOption={setPurchaseOption}
+          quantity={quantity}
+          setQuantity={setQuantity}
+          subscriptionVariant={subscriptionVariant!}
+        />
 
+        {/* <ProductSubscription product={product} variant={selectedVariant} variantSubscription={subscriptionSelectedVariant} /> */}
+        
         <Button
           onClick={handleAddToCart}
           disabled={

@@ -12,13 +12,26 @@ type PaymentDetailsProps = {
 const PaymentDetails = ({ order }: PaymentDetailsProps) => {
   const payment = order.payment_collections?.[0].payments?.[0]
 
+  console.log("order is heress", order)
   return (
     <div>
       <Heading level="h2" className="flex flex-row text-3xl-regular my-6">
         Payment
       </Heading>
       <div>
+        
         {payment && (
+          <div>
+          {order?.metadata && typeof order.metadata === 'object' && 'subscription_interval' in order.metadata && (
+            <div className="mb-3">
+              <Text>
+                Subscription type: {String(order.metadata.subscription_interval)}
+              </Text>
+              <Text>
+                Interval: {String(order.metadata.subscription_period)}
+              </Text>
+            </div>
+          )}
           <div className="flex items-start gap-x-1 w-full">
             <div className="flex flex-col w-1/3">
               <Text className="txt-medium-plus text-ui-fg-base mb-1">
@@ -51,6 +64,7 @@ const PaymentDetails = ({ order }: PaymentDetailsProps) => {
                 </Text>
               </div>
             </div>
+          </div>
           </div>
         )}
       </div>

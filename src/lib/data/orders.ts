@@ -78,9 +78,8 @@ export const listSubscriptions = async (
       query: {
         limit,
         offset,
-        order: "-created_at",
+        order: "-subscription_date",
         fields: "*order, *cart",
-        ...filters,
       },
       headers,
       next,
